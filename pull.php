@@ -10,6 +10,9 @@ if (!GIT_ROOT) {
     exit(1); 
 }
 
+$command_template = sprintf('cd %s && %s ', escapeshellarg(GIT_ROOT), escapeshellarg(GIT_COMMAND));
+shell_exec(sprintf('%s pull', $command_template));
+
 $raw_data = '{}';
 if (file_exists(GIT_ROOT . '/' . DATABASE_FILE)) {
     $raw_data = file_get_contents(GIT_ROOT .  '/' . DATABASE_FILE);
@@ -27,7 +30,6 @@ $parameters = http_build_query([
 ]);
 
 // Stupid simple call. No need to screw around
-echo sprintf('https://api.twitter.com/2/users/%s/tweets?%s', USER_ID, $parameters);
 $raw_tweets = file_get_contents(sprintf('https://api.twitter.com/2/users/%s/tweets?%s', USER_ID, $parameters), false, stream_context_create([
     "http" => [
         "method" => "GET",
@@ -74,7 +76,7 @@ file_put_contents(GIT_ROOT .  '/' . DATABASE_FILE, json_encode($current_skills, 
 
 // TODO send data to git
 if (count($change_reason) > 0) {
-    $command_template = sprintf('cd %s && %s ', escapeshellarg(GIT_ROOT), escapeshellarg(GIT_COMMAND));
+   
     echo $command_template . PHP_EOL;
     shell_exec(sprintf('%s pull', $command_template));
     shell_exec(sprintf('%s add %s', $command_template, escapeshellarg(DATABASE_FILE)));
@@ -88,5 +90,8 @@ if (count($change_reason) > 0) {
 
     shell_exec(sprintf('%s commit -m %s', $command_template, escapeshellarg($commit_message)));
 
-    
+    if (getenv('GIT_PUSH') === 'YES') {
+        shell_exec(sprintf('%s push -u origin', $command_template, escapeshellarg($commit_message)));
+    }
+
 }
