@@ -2,6 +2,7 @@
 define('USER_ID', '1509464452105711622'); // @HanannieTracker
 define('DATABASE_FILE', 'HanannieTracker.json');
 define('GIT_ROOT', realpath(getenv('GIT_ROOT') ?: '/tmp/'));
+define('GIT_COMMAND', getenv('GIT_COMMAND') ?: 'git');
 define('TWITTER_TOKEN', getenv('TWITTER_TOKEN'));
 
 if (!GIT_ROOT) {
@@ -72,3 +73,20 @@ ksort($current_skills);
 file_put_contents(GIT_ROOT .  '/' . DATABASE_FILE, json_encode($current_skills, JSON_PRETTY_PRINT));
 
 // TODO send data to git
+if (count($change_reason) > 0) {
+    $command_template = sprintf('cd %s && %s ', escapeshellarg(GIT_ROOT), escapeshellarg(GIT_COMMAND));
+    echo $command_template . PHP_EOL;
+    shell_exec(sprintf('%s pull', $command_template));
+    shell_exec(sprintf('%s add %s', $command_template, escapeshellarg(DATABASE_FILE)));
+
+    $commit_message = '[BOT] Updated level for ' . implode(', ', array_keys($change_reason));
+    $commit_message .= "\n\n";
+
+    foreach($change_reason as $skill => $tweet) {
+        $commit_message .= $skill . ': ' . $tweet . "\n";
+    }
+
+    shell_exec(sprintf('%s commit -m %s', $command_template, escapeshellarg($commit_message)));
+
+    
+}
